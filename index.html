@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+    <meta charset="utf-8">
+    <title>Configuration Configurator</title>
+    <style>
+        table {
+          font-family: arial, sans-serif;
+          border-collapse: collapse;
+          width: 100%;
+        }
+        
+        td, th {
+          border: 1px solid #dddddd;
+          text-align: left;
+          padding: 8px;
+        }
+        
+        tr:nth-child(even) {
+          background-color: #dddddd;
+        }
+        </style>
+</head>
+<body ng-app="myApp">
+<div ng-controller="CtrlOne">
+        Filter : <input  ng-model="filterText"  ></input>
+        <br/>
+    <table>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>App Name</th>
+          <th>Is Active?</th>
+          <th>Operation</th>
+        </tr>
+        <tr ng-repeat="config in configurations | filter:{name:filterText}">
+          <td>{{config.id}}</td>
+          <td>{{config.name}}</td>
+          <td>{{config.type}}</td>
+          <td>{{config.value}}</td>
+          <td>{{config.applicationName}}</td>
+          <td>{{config.isActive}}</td>
+          <td> <button ng-click="Delete(config.id)">Delete</button> <button ng-click="Edit(config)">Edit</button>  </td>
+        </tr>
+       
+      </table>
+        <br/>
+        <br/>
+      <table ng-model="addItem">
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Value</th>
+              <th>App Name</th>
+              <th>Is Active?</th>
+              <th></th>
+            </tr>
+            <tr>
+              <td><input disabled ng-model="addItem.id" ></input> </td>
+              <td><input ng-model="addItem.name"></input></td>
+              <td><input ng-model="addItem.type"></input></td>
+              <td><input ng-model="addItem.value"></input></td>
+              <td><input ng-model="addItem.applicationName"></input></td>
+              <td>
+                <input type="radio" ng-model="addItem.isActive" value=1>Yes
+                <input type="radio" ng-model="addItem.isActive" value=0>No
+              </td>
+              <td><button ng-show="!isEdit" ng-click="Add(addItem)">Add</button> <button ng-show="isEdit" ng-click="Update(config.id)">Update</button> <button ng-click="CancelEdit()" ng-show="isEdit">X</button></td>
+            </tr>
+           
+          </table>
+
+</div>
+<script>
+    var myApp = angular.module("myApp", []);
+    myApp.controller("CtrlOne", function ($scope,$filter,$http) {
+        $scope.configurations=[];
+        $scope.filterText;
+        $scope.myWelcome;
+        $scope.addItem = new Object();
+        $scope.isEdit=false;
+        $scope.name = "Furkan";
+        var apiAddress = "https://localhost:44379/api/configuration/";
+
+        var GetAll=function(){
+        $http({
+            method : "GET",
+            url : apiAddress + "all"
+        }).then(function mySuccess(response) {
+            
+            $scope.configurations = response.data;
+        }, function myError(response) {
+            $scope.myWelcome = response.statusText;
+        });
+        };
+        GetAll();
+
+       
+
+        $scope.Delete=function(id){
+        $http({
+            method : "DELETE",
+            url : apiAddress + id
+        }).then(function mySuccess(response) {
+           if(response.data){
+            delete $scope.configurations[$scope.configurations.findIndex(config => config.id === id)];
+           }
+        }, function myError(response) {
+            $scope.myWelcome = response.statusText;
+        });
+        };
+
+        $scope.Edit = function(item){
+            debugger;
+                $scope.isEdit = true;
+                $scope.addItem =angular.copy(item);
+
+        };
+        $scope.CancelEdit = function(){
+            
+                $scope.isEdit = false;
+                $scope.addItem = {};
+
+        };
+
+        $scope.Update=function()
+        {
+            $http({
+            method : "POST",
+            url : apiAddress +"update",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data : $scope.addItem
+        }).then(function mySuccess(response) {
+            
+            var addedItem = response.data;
+            if( addedItem.id != undefined && addedItem.id != null)
+            {
+                $scope.configurations[$scope.configurations.findIndex( config => config.id === addedItem.id )] = addedItem;
+                $scope.CancelEdit();
+            }
+        }, function myError(response) {
+            $scope.myWelcome = response.statusText;
+        });
+        }
+
+        $scope.Add=function()
+        {
+            $http({
+            method : "POST",
+            url : apiAddress +"add",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data : $scope.addItem
+        }).then(function mySuccess(response) {
+            
+            var addedItem = response.data;
+            if( addedItem.id != undefined && addedItem.id != null  )
+            {
+                $scope.configurations.push(addedItem);
+            }
+        }, function myError(response) {
+            $scope.myWelcome = response.statusText;
+        });
+        }
+    });
+</script>
+</body>
+</html>
